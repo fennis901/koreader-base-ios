@@ -12,6 +12,12 @@ ffi.cdef[[
                                 unsigned char g, unsigned char b,
                                 unsigned char a);
 ]]
+-- Diagnostic helper: write to stdout (flushes to the boot log) + explicit flush.
+-- See comment in ffi/SDL3.lua: stderr is fully buffered after freopen().
+local function diag(...)
+    io.write(...)
+    io.flush()
+end
 local framebuffer = {
     -- this blitbuffer will be used when we use refresh emulation
     sdl_bb = nil,
@@ -20,13 +26,13 @@ local framebuffer = {
 function framebuffer:init()
     if not self.dummy then
         -- Input dimensions are *window* sizes
-    io.stderr:write("[diag] framebuffer:init: before SDL.open w=", tostring(self.w), " h=", tostring(self.h), "\n")
+    diag("[diag] framebuffer:init: before SDL.open w=", tostring(self.w), " h=", tostring(self.h), "\n")
     SDL.open(self.w, self.h, self.x, self.y)
         -- Open might fudge them a bit on the emu, so, resync
         self.w, self.h = SDL.win_w, SDL.win_h
-    io.stderr:write("[diag] framebuffer:init: after SDL.open win_w=", tostring(SDL.win_w), " win_h=", tostring(SDL.win_h), " renderer=", tostring(SDL.renderer), "\n")
+    diag("[diag] framebuffer:init: after SDL.open win_w=", tostring(SDL.win_w), " win_h=", tostring(SDL.win_h), " renderer=", tostring(SDL.renderer), "\n")
         self:_newBB()
-    io.stderr:write("[diag] framebuffer:init: after _newBB\n")
+    diag("[diag] framebuffer:init: after _newBB\n")
     else
         self.bb = BB.new(600, 800)
     end
@@ -36,9 +42,9 @@ function framebuffer:init()
     end
 
     self.bb:fill(BB.COLOR_WHITE)
-    io.stderr:write("[diag] framebuffer:init: before refreshFull\n")
+    diag("[diag] framebuffer:init: before refreshFull\n")
     self:refreshFull(0, 0, self:getWidth(), self:getHeight())
-    io.stderr:write("[diag] framebuffer:init: after refreshFull\n")
+    diag("[diag] framebuffer:init: after refreshFull\n")
 
     framebuffer.parent.init(self)
 end
@@ -194,9 +200,9 @@ function framebuffer:_render(bb, x, y, w, h)
     else
         SDL.SDL.SDL_RenderTexture(SDL.renderer, SDL.texture, nil, nil)
     end
-    io.stderr:write("[diag] _render: before RenderPresent\n")
+    diag("[diag] _render: before RenderPresent\n")
     SDL.SDL.SDL_RenderPresent(SDL.renderer)
-    io.stderr:write("[diag] _render: after RenderPresent\n")
+    diag("[diag] _render: after RenderPresent\n")
 end
 
 function framebuffer:refreshFullImp(x, y, w, h)
