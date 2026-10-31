@@ -28,7 +28,6 @@ set(CHECKS
     gmtime_r        "time.h"   HAVE_GMTIME_R
     localtime_r     "time.h"   HAVE_LOCALTIME_R
     posix_fallocate "fcntl.h"  HAVE_POSIX_FALLOCATE
-    strchrnul       "string.h" HAVE_STRCHRNUL
     strerror_r      "string.h" HAVE_STRERROR_R
     usleep          "unistd.h" HAVE_USLEEP
 )
