@@ -85,7 +85,6 @@ function S.open(w, h, x, y)
         return true
     end
 
-    io.stderr:write("[diag] S.open: enter w=", tostring(w), " h=", tostring(h), " x=", tostring(x), " y=", tostring(y), "\n")
     SDL.SDL_SetMainReady()
 
     if SDL.SDL_Init(bit.bor(SDL.SDL_INIT_VIDEO,
@@ -93,7 +92,6 @@ function S.open(w, h, x, y)
                             SDL.SDL_INIT_GAMEPAD)) == 0 then
         error("Cannot initialize SDL: " .. ffi.string(SDL.SDL_GetError()))
     end
-    io.stderr:write("[diag] S.open: SDL_Init done\n")
 
     local full_screen = os.getenv("SDL_FULLSCREEN")
     if full_screen then
@@ -102,12 +100,10 @@ function S.open(w, h, x, y)
             error("SDL cannot get current display mode: " .. ffi.string(SDL.SDL_GetError()))
         end
         S.win_w, S.win_h = mode.w, mode.h
-    io.stderr:write("[diag] S.open: display mode win_w=", tostring(S.win_w), " win_h=", tostring(S.win_h), "\n")
     else
         S.win_w = tonumber(os.getenv("EMULATE_READER_W")) or w or 600
         S.win_h = tonumber(os.getenv("EMULATE_READER_H")) or h or 800
     end
-    io.stderr:write("[diag] S.open: default size win_w=", tostring(S.win_w), " win_h=", tostring(S.win_h), "\n")
 
     -- Allow clicks that focus the window to pass through as input events (macOS).
     SDL.SDL_SetHint("SDL_MOUSE_FOCUS_CLICKTHROUGH", "1")
@@ -118,7 +114,6 @@ function S.open(w, h, x, y)
     -- Enable screensaver and X11 composition.
     SDL.SDL_EnableScreenSaver()
     SDL.SDL_SetHint("SDL_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR", "0")
-    io.stderr:write("[diag] S.open: hints+screensaver done, before CreateWindow\n")
 
     -- set up screen (window)
     local pos_x = tonumber(os.getenv("KOREADER_WINDOW_POS_X")) or x or SDL.SDL_WINDOWPOS_UNDEFINED
@@ -127,26 +122,19 @@ function S.open(w, h, x, y)
         S.win_w, S.win_h,
         bit.bor(full_screen and SDL.SDL_WINDOW_FULLSCREEN or 0, SDL.SDL_WINDOW_RESIZABLE, SDL.SDL_WINDOW_HIGH_PIXEL_DENSITY)
     )
-    io.stderr:write("[diag] S.open: after CreateWindow screen=", tostring(S.screen), " (appearance warnings happen here)\n")
     -- For some mysterious reason, CreateWindow doesn't give a damn about the initial position, and will enforce top-left (we get an SDL_EVENT_WINDOW_MOVED), so, force its hand...
     -- What's even more curious is that we still only get a single SDL_EVENT_WINDOW_MOVED on startup, except that way it's at the requested coordinates...
     SDL.SDL_SetWindowPosition(S.screen, pos_x, pos_y)
-    io.stderr:write("[diag] S.open: after SetWindowPosition\n")
 
     SDL.SDL_SyncWindow(S.screen)
-    io.stderr:write("[diag] S.open: after SyncWindow\n")
 
     -- Disable TextInput until we enable it.
     -- Also see <https://github.com/slouken/SDL/commit/c0f9a3d814a815ec6e2822d7fd2e8648df79f7b9>.
     S:stopTextInput()
-    io.stderr:write("[diag] S.open: after stopTextInput\n")
 
-    io.stderr:write("[diag] S.open: before CreateRenderer\n")
     S.renderer = SDL.SDL_CreateRenderer(S.screen, nil)
-    io.stderr:write("[diag] S.open: after CreateRenderer renderer=", tostring(S.renderer), "\n")
     local output_w = ffi.new("int[1]", 0)
     local output_h = ffi.new("int[1]", 0)
-    io.stderr:write("[diag] S.open: before GetCurrentRenderOutputSize\n")
     if SDL.SDL_GetCurrentRenderOutputSize(S.renderer, output_w, output_h) and tonumber(output_w[0]) ~= w then
         -- This is a workaround to obtain a simulacrum of real pixels in scenarios that marketing likes to refer to as "HiDPI".
         -- The utterly deranged idea is to render things at 2x or 3x, so it can subsequently be scaled down in order to assure everything will always be at least a little bit blurry unless you happen to use exactly 2x or 3x, instead of the traditional methods of just rendering at the desired DPI that have worked perfectly fine in Windows and X11 for decades.
@@ -159,7 +147,6 @@ function S.open(w, h, x, y)
         S.w = S.win_w
         S.h = S.win_h
     end
-    io.stderr:write("[diag] S.open: after GetCurrentRenderOutputSize S.w=", tostring(S.w), " S.h=", tostring(S.h), "\n")
     -- Default: no safe-area inset (entire window is usable).
     S.window_pixel_w = S.w
     S.window_pixel_h = S.h
@@ -172,13 +159,10 @@ function S.open(w, h, x, y)
         ffi.cdef[[
             void ko_ios_get_safe_area_pixels(int *t, int *r, int *b, int *l);
         ]]
-        io.stderr:write("[diag] S.open: before applyIOSSafeArea\n")
         S.applyIOSSafeArea(S.window_pixel_w, S.window_pixel_h)
-        io.stderr:write("[diag] S.open: after applyIOSSafeArea S.w=", tostring(S.w), " S.h=", tostring(S.h), " safe l/t/r/b=", tostring(S.safe_left), "/", tostring(S.safe_top), "/", tostring(S.safe_right), "/", tostring(S.safe_bottom), "\n")
     end
-    io.stderr:write("[diag] S.open: before createTexture\n")
+
     S.texture = S.createTexture()
-    io.stderr:write("[diag] S.open: after createTexture texture=", tostring(S.texture), "\n")
 end
 
 -- Query iOS' UIWindow.safeAreaInsets and recompute S.w/S.h to letterbox
